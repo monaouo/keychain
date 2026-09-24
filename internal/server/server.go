@@ -16,7 +16,7 @@ import (
 const (
 	cookieName  = "keychain_session"
 	csrfHeader  = "X-Keychain"
-	minPassword = 8
+	minPassword = 4
 	maxBody     = 1 << 20
 	maxRestore  = 32 << 20
 )

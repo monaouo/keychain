@@ -93,7 +93,7 @@ function showLock(initialized, message = '') {
 
   const setup = !initialized;
   el.lockForm.dataset.mode = setup ? 'setup' : 'unlock';
-  el.lockHint.textContent = setup ? '第一次使用，請設定主密碼（至少 8 個字元）。主密碼遺失將無法復原資料。' : '輸入主密碼以解鎖保險庫';
+  el.lockHint.textContent = setup ? '第一次使用，請設定主密碼（至少 4 個字元）。主密碼遺失將無法復原資料。' : '輸入主密碼以解鎖保險庫';
   el.lockPw.autocomplete = setup ? 'new-password' : 'current-password';
   el.lockPw2.hidden = !setup;
   el.lockSubmit.textContent = setup ? '建立保險庫' : '解鎖';
@@ -108,7 +108,7 @@ el.lockForm.addEventListener('submit', async (ev) => {
   const pw = el.lockPw.value;
   if (!pw) return showLockError('請輸入主密碼');
   if (setup) {
-    if ([...pw].length < 8) return showLockError('主密碼至少需 8 個字元');
+    if ([...pw].length < 4) return showLockError('主密碼至少需 4 個字元');
     if (pw !== el.lockPw2.value) return showLockError('兩次輸入的主密碼不一致');
   }
   el.lockSubmit.disabled = true;
@@ -553,7 +553,7 @@ el.pwForm.addEventListener('submit', async (ev) => {
   ev.preventDefault();
   const old = $('#pw-old').value;
   const next = $('#pw-new').value;
-  if ([...next].length < 8) { el.pwErr.textContent = '新主密碼至少需 8 個字元'; return; }
+  if ([...next].length < 4) { el.pwErr.textContent = '新主密碼至少需 4 個字元'; return; }
   if (next !== $('#pw-new2').value) { el.pwErr.textContent = '兩次輸入的新主密碼不一致'; return; }
   const submit = $('button[type="submit"]', el.pwForm);
   submit.disabled = true;
@@ -603,7 +603,7 @@ $$('[data-close]', el.bkDialog).forEach((b) => b.addEventListener('click', () =>
 el.bkExport.addEventListener('submit', async (ev) => {
   ev.preventDefault();
   const pw = $('#bk-pw').value;
-  if ([...pw].length < 8) { el.bkErr.textContent = '備份密碼至少需 8 個字元'; return; }
+  if ([...pw].length < 4) { el.bkErr.textContent = '備份密碼至少需 4 個字元'; return; }
   if (pw !== $('#bk-pw2').value) { el.bkErr.textContent = '兩次輸入的備份密碼不一致'; return; }
   el.bkErr.textContent = '';
   const submit = $('button[type="submit"]', el.bkExport);

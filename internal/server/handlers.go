@@ -48,7 +48,7 @@ func (s *Server) handleSetup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if len([]rune(req.Password)) < minPassword {
-		writeError(w, http.StatusBadRequest, "主密碼至少需 8 個字元")
+		writeError(w, http.StatusBadRequest, "主密碼至少需 4 個字元")
 		return
 	}
 	s.unlockMu.Lock()
@@ -152,7 +152,7 @@ func (s *Server) handleChangePassword(w http.ResponseWriter, r *http.Request, v 
 		return
 	}
 	if len([]rune(req.New)) < minPassword {
-		writeError(w, http.StatusBadRequest, "主密碼至少需 8 個字元")
+		writeError(w, http.StatusBadRequest, "主密碼至少需 4 個字元")
 		return
 	}
 	err := v.ChangePassword(req.Old, req.New)
@@ -180,7 +180,7 @@ func (s *Server) handleBackup(w http.ResponseWriter, r *http.Request, v *vault.V
 		return
 	}
 	if len([]rune(req.Password)) < minPassword {
-		writeError(w, http.StatusBadRequest, "備份密碼至少需 8 個字元")
+		writeError(w, http.StatusBadRequest, "備份密碼至少需 4 個字元")
 		return
 	}
 	data, err := v.Backup(req.Password)
