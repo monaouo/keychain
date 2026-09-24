@@ -91,7 +91,7 @@ func Open(path, password string) (*Vault, error) {
 	if err != nil {
 		return nil, err
 	}
-	plain, err := open(key, f.Nonce, f.Data)
+	plain, err := open(key, f.Nonce, f.Data, vaultAAD)
 	if err != nil {
 		wipe(key)
 		return nil, err
@@ -241,7 +241,7 @@ func (v *Vault) save() error {
 		return err
 	}
 	defer wipe(plain)
-	nonce, ct, err := seal(v.key, plain)
+	nonce, ct, err := seal(v.key, plain, vaultAAD)
 	if err != nil {
 		return err
 	}

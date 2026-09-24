@@ -131,7 +131,28 @@ docker compose up -d
 }
 ```
 
-備份時直接複製此檔即可，沒有主密碼無法解開。
+### 加密備份檔（`.kcbak`）
+
+匯出時另設一組**備份密碼**（至少 8 個字元），與主密碼無關：日後更換主密碼，舊備份仍可用備份密碼還原。產生的檔案可自行上傳到 Google Drive、Dropbox、OneDrive 等雲端硬碟保存。
+
+```json
+{
+  "format": "keychain-backup",
+  "version": 1,
+  "createdAt": "2026-09-24T03:00:00Z",
+  "kdf": "pbkdf2-sha256",
+  "iter": 600000,
+  "salt": "<base64>",
+  "nonce": "<base64>",
+  "data": "<base64 AES-GCM 密文>"
+}
+```
+
+- 金鑰衍生與加密方式與保險庫相同，並使用不同的 AAD，保險庫檔與備份檔無法互換。
+- 檔案不含筆數、標題等任何明文中繼資料。
+- 還原方式：
+  - `merge`（合併）：以 ID 比對，備份中較新的資料覆蓋本機，本機獨有資料保留。
+  - `replace`（覆蓋）：清空目前資料，完全以備份內容取代。
 
 ## API
 
@@ -149,6 +170,8 @@ docker compose up -d
 | PUT | `/api/entries/{id}` | 更新 |
 | DELETE | `/api/entries/{id}` | 刪除 |
 | POST | `/api/password` | `{old, new}` 更換主密碼 |
+| POST | `/api/backup` | `{password}` 以備份密碼產生加密備份檔（下載） |
+| POST | `/api/restore` | `{password, mode, backup}` 還原；`mode` 為 `merge` 或 `replace` |
 
 ## 專案結構
 

@@ -18,6 +18,7 @@ const (
 	csrfHeader  = "X-Keychain"
 	minPassword = 8
 	maxBody     = 1 << 20
+	maxRestore  = 32 << 20
 )
 
 // Config 為伺服器設定。
@@ -62,6 +63,8 @@ func (s *Server) Handler() http.Handler {
 	mux.Handle("PUT /api/entries/{id}", s.auth(s.handleUpdate))
 	mux.Handle("DELETE /api/entries/{id}", s.auth(s.handleDelete))
 	mux.Handle("POST /api/password", s.auth(s.handleChangePassword))
+	mux.Handle("POST /api/backup", s.auth(s.handleBackup))
+	mux.Handle("POST /api/restore", s.auth(s.handleRestore))
 	if s.cfg.Static != nil {
 		mux.Handle("GET /", http.FileServerFS(s.cfg.Static))
 	}

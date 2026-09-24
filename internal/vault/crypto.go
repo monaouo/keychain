@@ -17,7 +17,10 @@ const (
 // Iterations 為新建檔的 PBKDF2 次數。
 var Iterations = 600_000
 
-var aad = []byte("keychain-v1")
+var (
+	vaultAAD  = []byte("keychain-v1")
+	backupAAD = []byte("keychain-backup-v1")
+)
 
 // ErrBadPassword 表示主密碼錯誤或檔案遭竄改。
 var ErrBadPassword = errors.New("主密碼錯誤")
@@ -32,7 +35,7 @@ func randomBytes(n int) []byte {
 	return b
 }
 
-func seal(key, plain []byte) (nonce, ct []byte, err error) {
+func seal(key, plain, aad []byte) (nonce, ct []byte, err error) {
 	gcm, err := newGCM(key)
 	if err != nil {
 		return nil, nil, err
@@ -41,7 +44,7 @@ func seal(key, plain []byte) (nonce, ct []byte, err error) {
 	return nonce, gcm.Seal(nil, nonce, plain, aad), nil
 }
 
-func open(key, nonce, ct []byte) ([]byte, error) {
+func open(key, nonce, ct, aad []byte) ([]byte, error) {
 	gcm, err := newGCM(key)
 	if err != nil {
 		return nil, err
