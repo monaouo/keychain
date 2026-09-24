@@ -92,7 +92,7 @@ input:focus, textarea:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-soft);
 }
-input[type="range"], input[type="checkbox"] { width: auto; padding: 0; box-shadow: none; accent-color: var(--accent); }
+input[type="range"], input[type="checkbox"], input[type="radio"] { width: auto; padding: 0; box-shadow: none; accent-color: var(--accent); }
 
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
@@ -287,6 +287,57 @@ dialog {
 }
 dialog::backdrop { background: rgb(0 0 0 / 40%); }
 dialog form { display: grid; gap: 14px; }
+dialog.wide { width: min(500px, calc(100% - 32px)); }
+dialog > h2 { margin-bottom: 14px; }
+code { font-family: var(--mono); font-size: .9em; }
+
+.tabs {
+  display: flex; gap: 4px;
+  margin-bottom: 18px; padding: 4px;
+  background: var(--surface-2);
+  border-radius: 10px;
+}
+.tabs [role="tab"] {
+  flex: 1;
+  padding: 7px 10px;
+  font: inherit; font-weight: 500;
+  color: var(--muted);
+  background: transparent;
+  border: 0; border-radius: 7px;
+  cursor: pointer;
+}
+.tabs [role="tab"][aria-selected="true"] { color: var(--text); background: var(--surface); box-shadow: 0 1px 2px rgb(0 0 0 / 12%); }
+.tabs + form p.muted { margin: 0; }
+
+input[type="file"] { padding: 7px; cursor: pointer; }
+input[type="file"]::file-selector-button {
+  margin-right: 10px; padding: 5px 12px;
+  font: inherit; color: var(--text);
+  background: var(--surface-2);
+  border: 1px solid var(--border); border-radius: 6px;
+  cursor: pointer;
+}
+
+.choices { display: grid; gap: 8px; margin: 0; padding: 0; border: 0; }
+.choices legend { margin-bottom: 6px; padding: 0; font-size: .88rem; font-weight: 600; }
+.choice {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border); border-radius: 8px;
+  cursor: pointer;
+}
+.choice:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+.choice input { margin-top: 4px; accent-color: var(--accent); }
+.choice span { display: grid; }
+.choice small { color: var(--muted); }
+
+.notice, .result {
+  margin: 0; padding: 10px 12px;
+  font-size: .85rem;
+  border-radius: 8px;
+}
+.notice { color: var(--lv2); background: color-mix(in srgb, var(--lv2) 12%, transparent); }
+.result { color: var(--lv3); background: color-mix(in srgb, var(--lv3) 12%, transparent); }
 
 .toast {
   position: fixed; left: 50%; bottom: 24px; translate: -50% 0;
@@ -303,7 +354,7 @@ dialog form { display: grid; gap: 14px; }
 /* 窄螢幕 */
 @media (max-width: 760px) {
   .topbar { flex-wrap: wrap; }
-  .brand span, #add-btn span, #logout-btn span { display: none; }
+  .brand span, #add-btn span, #logout-btn span, #bk-btn span { display: none; }
   .search { order: 5; flex-basis: 100%; max-width: none; margin: 0; }
   .brand { margin-right: auto; }
   .layout { grid-template-columns: 1fr; }

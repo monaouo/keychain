@@ -30,6 +30,7 @@
         <input id="search" type="search" placeholder="搜尋標題、帳號、網址、標籤（按 / 聚焦）" aria-label="搜尋">
       </div>
       <button id="add-btn" class="btn primary" type="button"><i data-icon="plus"></i><span>新增</span></button>
+      <button id="bk-btn" class="btn ghost" type="button" title="備份與還原"><i data-icon="archive"></i><span>備份</span></button>
       <button id="pw-btn" class="btn ghost icon-only" type="button" title="更換主密碼" aria-label="更換主密碼"><i data-icon="settings"></i></button>
       <button id="logout-btn" class="btn ghost" type="button" title="上鎖"><i data-icon="lock"></i><span>上鎖</span></button>
     </header>
@@ -158,6 +159,60 @@
       <div class="form-actions">
         <button class="btn" type="button" id="pw-cancel">取消</button>
         <button class="btn primary" type="submit">更換</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="bk-dialog" class="wide" aria-labelledby="bk-title">
+    <h2 id="bk-title">備份與還原</h2>
+    <div class="tabs" role="tablist">
+      <button type="button" role="tab" id="tab-export" aria-controls="bk-export" aria-selected="true">匯出備份</button>
+      <button type="button" role="tab" id="tab-restore" aria-controls="bk-restore" aria-selected="false">從備份還原</button>
+    </div>
+
+    <form id="bk-export" role="tabpanel" aria-labelledby="tab-export" novalidate>
+      <p class="muted small">以另設的備份密碼加密所有資料並下載 <code>.kcbak</code> 檔，可上傳到 Google Drive、Dropbox、OneDrive 等雲端硬碟保存。</p>
+      <div class="form-row">
+        <label for="bk-pw">備份密碼（至少 8 個字元）</label>
+        <input id="bk-pw" type="password" autocomplete="new-password">
+      </div>
+      <div class="form-row">
+        <label for="bk-pw2">確認備份密碼</label>
+        <input id="bk-pw2" type="password" autocomplete="new-password">
+      </div>
+      <p class="notice">備份密碼與主密碼各自獨立；遺失備份密碼將無法還原此備份。</p>
+      <p id="bk-err" class="error" role="alert"></p>
+      <div class="form-actions">
+        <button class="btn" type="button" data-close>關閉</button>
+        <button class="btn primary" type="submit"><i data-icon="download"></i><span>下載備份</span></button>
+      </div>
+    </form>
+
+    <form id="bk-restore" role="tabpanel" aria-labelledby="tab-restore" novalidate hidden>
+      <div class="form-row">
+        <label for="rs-file">備份檔案</label>
+        <input id="rs-file" type="file" accept=".kcbak,application/json">
+      </div>
+      <div class="form-row">
+        <label for="rs-pw">備份密碼</label>
+        <input id="rs-pw" type="password" autocomplete="off">
+      </div>
+      <fieldset class="choices">
+        <legend>還原方式</legend>
+        <label class="choice">
+          <input type="radio" name="mode" value="merge" checked>
+          <span><strong>合併</strong><small>保留本機資料；同一筆項目以較新的版本為準。</small></span>
+        </label>
+        <label class="choice">
+          <input type="radio" name="mode" value="replace">
+          <span><strong>覆蓋</strong><small>清空目前所有資料，完全以備份內容取代。</small></span>
+        </label>
+      </fieldset>
+      <p id="rs-err" class="error" role="alert"></p>
+      <p id="rs-result" class="result" role="status" hidden></p>
+      <div class="form-actions">
+        <button class="btn" type="button" data-close>關閉</button>
+        <button class="btn primary" type="submit"><i data-icon="upload"></i><span>開始還原</span></button>
       </div>
     </form>
   </dialog>

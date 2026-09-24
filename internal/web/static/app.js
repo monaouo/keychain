@@ -16,6 +16,9 @@ const ICONS = {
   trash: '<path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/>',
   dice: '<rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/>',
   back: '<path d="m15 18-6-6 6-6"/>',
+  archive: '<rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8M10 12h4"/>',
+  download: '<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>',
+  upload: '<path d="M12 15V4M7 9l5-5 5 5M5 20h14"/>',
 };
 
 function icon(name) {
@@ -43,7 +46,7 @@ class ApiError extends Error {
   }
 }
 
-async function api(method, path, body) {
+async function api(method, path, body, { raw = false } = {}) {
   const opt = { method, headers: { 'X-Keychain': '1' }, credentials: 'same-origin' };
   if (body !== undefined) {
     opt.headers['Content-Type'] = 'application/json';
@@ -59,6 +62,7 @@ async function api(method, path, body) {
     try { msg = (await res.json()).error || msg; } catch { /* 忽略 */ }
     throw new ApiError(msg, res.status);
   }
+  if (raw) return res;
   return res.status === 204 ? null : res.json();
 }
 
@@ -72,6 +76,8 @@ const el = {
   app: $('#app'), search: $('#search'), tags: $('#tags'), count: $('#count'),
   list: $('#list'), empty: $('#empty'), pane: $('#pane'), toast: $('#toast'),
   pwDialog: $('#pw-dialog'), pwForm: $('#pw-form'), pwErr: $('#pw-err'),
+  bkDialog: $('#bk-dialog'), bkExport: $('#bk-export'), bkErr: $('#bk-err'),
+  bkRestore: $('#bk-restore'), rsErr: $('#rs-err'), rsResult: $('#rs-result'),
 };
 
 // 上鎖畫面
@@ -81,7 +87,7 @@ function showLock(initialized, message = '') {
   el.list.replaceChildren();
   el.pane.replaceChildren();
   el.search.value = '';
-  if (el.pwDialog.open) el.pwDialog.close();
+  $$('dialog[open]').forEach((d) => d.close());
   el.app.hidden = true;
   el.lock.hidden = false;
 
@@ -563,9 +569,116 @@ el.pwForm.addEventListener('submit', async (ev) => {
   }
 });
 
+// 備份與還原
+const MAX_BACKUP = 32 * 1024 * 1024;
+
+function showTab(name) {
+  for (const tab of $$('[role="tab"]', el.bkDialog)) {
+    const on = tab.id === `tab-${name}`;
+    tab.setAttribute('aria-selected', String(on));
+    tab.tabIndex = on ? 0 : -1;
+    $(`#${tab.getAttribute('aria-controls')}`).hidden = !on;
+  }
+}
+
+$('#bk-btn').addEventListener('click', () => {
+  if (!confirmDiscard()) return;
+  if (state.mode !== 'view') {
+    state.mode = 'view';
+    renderPane();
+  }
+  el.bkExport.reset();
+  el.bkRestore.reset();
+  el.bkErr.textContent = el.rsErr.textContent = '';
+  el.rsResult.hidden = true;
+  showTab('export');
+  el.bkDialog.showModal();
+  $('#bk-pw').focus();
+});
+
+$('#tab-export').addEventListener('click', () => showTab('export'));
+$('#tab-restore').addEventListener('click', () => showTab('restore'));
+$$('[data-close]', el.bkDialog).forEach((b) => b.addEventListener('click', () => el.bkDialog.close()));
+
+el.bkExport.addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  const pw = $('#bk-pw').value;
+  if ([...pw].length < 8) { el.bkErr.textContent = '備份密碼至少需 8 個字元'; return; }
+  if (pw !== $('#bk-pw2').value) { el.bkErr.textContent = '兩次輸入的備份密碼不一致'; return; }
+  el.bkErr.textContent = '';
+  const submit = $('button[type="submit"]', el.bkExport);
+  submit.disabled = true;
+  try {
+    const res = await api('POST', '/api/backup', { password: pw }, { raw: true });
+    const name = /filename="([^"]+)"/.exec(res.headers.get('Content-Disposition') || '')?.[1] || 'keychain-backup.kcbak';
+    saveBlob(await res.blob(), name);
+    el.bkExport.reset();
+    el.bkDialog.close();
+    toast(`已下載 ${name}，請上傳到雲端硬碟保存`);
+  } catch (err) {
+    if (err.status !== 401) el.bkErr.textContent = err.message;
+  } finally {
+    submit.disabled = false;
+  }
+});
+
+function saveBlob(blob, name) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+el.bkRestore.addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  el.rsErr.textContent = '';
+  el.rsResult.hidden = true;
+  const file = $('#rs-file').files[0];
+  const password = $('#rs-pw').value;
+  const mode = el.bkRestore.elements.mode.value;
+  if (!file) { el.rsErr.textContent = '請選擇備份檔案'; return; }
+  if (file.size > MAX_BACKUP) { el.rsErr.textContent = '檔案過大（上限 32 MB）'; return; }
+  if (!password) { el.rsErr.textContent = '請輸入備份密碼'; return; }
+
+  let backup;
+  try {
+    backup = JSON.parse(await file.text());
+  } catch {
+    el.rsErr.textContent = '不是有效的 keychain 備份檔';
+    return;
+  }
+  if (mode === 'replace' && state.entries.length
+    && !confirm(`覆蓋將清空目前的 ${state.entries.length} 筆資料並以備份取代，此動作無法復原。確定繼續？`)) return;
+
+  const submit = $('button[type="submit"]', el.bkRestore);
+  submit.disabled = true;
+  try {
+    const r = await api('POST', '/api/restore', { password, mode, backup });
+    $('#rs-pw').value = '';
+    const parts = [`新增 ${r.added}`, `更新 ${r.updated}`, `未變更 ${r.unchanged}`];
+    if (mode === 'replace') parts.push(`移除 ${r.removed}`);
+    el.rsResult.textContent = `還原完成：${parts.join('、')}，目前共 ${r.total} 筆。`;
+    el.rsResult.hidden = false;
+    await loadEntries();
+    if (!current()) {
+      state.selected = null;
+      el.app.classList.remove('show-pane');
+    }
+    renderPane();
+  } catch (err) {
+    if (err.status !== 401) el.rsErr.textContent = err.message;
+  } finally {
+    submit.disabled = false;
+  }
+});
+
 document.addEventListener('keydown', (ev) => {
   const typing = ev.target.closest('input, textarea');
-  if (ev.key === '/' && !typing && !el.app.hidden && !el.pwDialog.open) {
+  if (ev.key === '/' && !typing && !el.app.hidden && !$('dialog[open]')) {
     ev.preventDefault();
     el.search.focus();
   }
