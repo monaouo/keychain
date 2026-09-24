@@ -19,7 +19,8 @@ ARG VERSION=dev
 LABEL org.opencontainers.image.title="keychain" \
       org.opencontainers.image.description="本機加密帳號密碼管理 Web 應用" \
       org.opencontainers.image.source="https://github.com/monaouo/keychain" \
-      org.opencontainers.image.version="$VERSION"
+      org.opencontainers.image.version="$VERSION" \
+      org.opencontainers.image.licenses="MIT"
 
 COPY --from=build /out/keychain /usr/local/bin/keychain
 COPY --from=build --chown=65532:65532 /out/data /data

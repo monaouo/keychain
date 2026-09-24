@@ -1,5 +1,8 @@
 # Keychain
 
+[![GHCR](https://img.shields.io/badge/ghcr.io-monaouo%2Fkeychain-blue?logo=docker)](https://github.com/monaouo/keychain/pkgs/container/keychain)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+
 本機執行的帳號密碼管理 Web 應用。單一執行檔、無外部依賴，資料以主密碼加密後儲存於本機。
 
 ## 功能
@@ -193,3 +196,7 @@ make all    # fmt + vet + test + build
 ```
 
 測試集中於 `test/`，已列入 `.gitignore`，僅存於本機。
+
+## 授權
+
+[MIT](LICENSE) © 2026 monaouo
