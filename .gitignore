@@ -1,0 +1,19 @@
+# 測試
+/test/
+
+# 建置產物
+/bin/
+/dist/
+*.exe
+*.test
+*.out
+
+# 保險庫資料
+*.vault
+vault.json
+.vault-*
+
+# 編輯器與系統
+.idea/
+.vscode/
+.DS_Store
