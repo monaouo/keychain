@@ -46,6 +46,64 @@ make build        # 產出 bin/keychain
 
 依相同設定取得位址；監聽 `0.0.0.0` 時會改連 `127.0.0.1`。
 
+## 使用 Docker 部署
+
+映像：`ghcr.io/monaouo/keychain`（支援 `linux/amd64`、`linux/arm64`）
+
+### docker run
+
+```sh
+docker run -d --name keychain \
+  -p 127.0.0.1:8787:8787 \
+  -v keychain-data:/data \
+  --restart unless-stopped \
+  ghcr.io/monaouo/keychain:latest
+```
+
+開啟 http://127.0.0.1:8787 設定主密碼即可使用。
+
+### docker compose
+
+下載 [`docker-compose.yml`](docker-compose.yml) 後執行：
+
+```sh
+docker compose up -d
+```
+
+### 注意事項
+
+- 埠號對應請保留 `127.0.0.1:` 前綴，只讓本機連線；若拿掉會讓區域網路內的其他裝置也能連到。
+- 資料存放在 volume `keychain-data` 的 `/data/vault.json`。備份：
+  ```sh
+  docker cp keychain:/data/vault.json ./vault-backup.json
+  ```
+- 容器以非 root（UID 65532）執行。若改用主機目錄掛載，需先調整權限：
+  ```sh
+  mkdir -p ./data && sudo chown 65532:65532 ./data
+  docker run -d -p 127.0.0.1:8787:8787 -v "$PWD/data:/data" ghcr.io/monaouo/keychain:latest
+  ```
+- 放在 HTTPS 反向代理之後時，加上 `-e KEYCHAIN_SECURE_COOKIE=true`。
+- 升級：`docker compose pull && docker compose up -d`，資料保留在 volume 中。
+
+### 發佈映像（維護者）
+
+1. 到 GitHub → Settings → Developer settings → Personal access tokens (classic) 建立 token，勾選 `write:packages`。
+2. 登入 GHCR：
+   ```sh
+   echo <TOKEN> | docker login ghcr.io -u monaouo --password-stdin
+   ```
+3. 首次使用 buildx 多架構建置需建立 builder：
+   ```sh
+   docker buildx create --name keychain-builder --use
+   ```
+4. 建置並推送：
+   ```sh
+   make docker-push VERSION=0.1.0
+   ```
+5. GHCR 新套件預設為私有：到 GitHub 個人頁 → Packages → keychain → Package settings → Change visibility 改為 **Public**，他人才能免登入拉取。
+
+本機測試映像：`make docker-build && make docker-run`。
+
 ## 安全設計
 
 | 項目 | 做法 |

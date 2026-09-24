@@ -1,0 +1,20 @@
+services:
+  keychain:
+    image: ghcr.io/monaouo/keychain:latest
+    container_name: keychain
+    restart: unless-stopped
+    ports:
+      # 僅本機可連線
+      - "127.0.0.1:8787:8787"
+    volumes:
+      - keychain-data:/data
+    environment:
+      KEYCHAIN_IDLE: 10m
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  keychain-data:
