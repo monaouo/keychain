@@ -22,10 +22,11 @@ const (
 
 // Config 為伺服器設定。
 type Config struct {
-	Path        string        // 保險庫路徑
-	IdleTimeout time.Duration // 閒置上鎖
-	FailDelay   time.Duration // 失敗延遲
-	Static      fs.FS         // 前端檔案
+	Path         string        // 保險庫路徑
+	IdleTimeout  time.Duration // 閒置上鎖
+	FailDelay    time.Duration // 失敗延遲
+	Static       fs.FS         // 前端檔案
+	SecureCookie bool          // 限 HTTPS
 }
 
 // Server 管理保險庫與工作階段。
@@ -115,7 +116,7 @@ func (s *Server) startSession(w http.ResponseWriter, v *vault.Vault) {
 	s.mu.Unlock()
 	http.SetCookie(w, &http.Cookie{
 		Name: cookieName, Value: token, Path: "/api",
-		HttpOnly: true, SameSite: http.SameSiteStrictMode,
+		HttpOnly: true, Secure: s.cfg.SecureCookie, SameSite: http.SameSiteStrictMode,
 	})
 }
 

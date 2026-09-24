@@ -95,7 +95,7 @@ func (s *Server) handleLock(w http.ResponseWriter, r *http.Request) {
 	if s.session(r, false) != nil {
 		s.Lock()
 	}
-	http.SetCookie(w, &http.Cookie{Name: cookieName, Path: "/api", MaxAge: -1})
+	http.SetCookie(w, &http.Cookie{Name: cookieName, Path: "/api", MaxAge: -1, Secure: s.cfg.SecureCookie})
 	w.WriteHeader(http.StatusNoContent)
 }
 

@@ -4,31 +4,68 @@ import (
 	"context"
 	"errors"
 	"flag"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"syscall"
 	"time"
 
+	"keychain/internal/config"
 	"keychain/internal/server"
 	"keychain/internal/web"
 )
 
 func main() {
-	home, _ := os.UserHomeDir()
-	addr := flag.String("addr", "127.0.0.1:8787", "監聽位址")
-	path := flag.String("data", filepath.Join(home, ".keychain", "vault.json"), "保險庫檔案路徑")
-	idle := flag.Duration("idle", 10*time.Minute, "閒置自動上鎖時間")
-	flag.Parse()
+	args := os.Args[1:]
+	health := len(args) > 0 && args[0] == "healthcheck"
+	if health {
+		args = args[1:]
+	}
+	cfg, err := config.Load("keychain", args, os.Getenv, os.Stderr)
+	if errors.Is(err, flag.ErrHelp) {
+		return
+	}
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(2)
+	}
+	if health {
+		os.Exit(healthcheck(cfg))
+	}
+	serve(cfg)
+}
 
-	srv := server.New(server.Config{Path: *path, IdleTimeout: *idle, FailDelay: time.Second, Static: web.FS()})
+// healthcheck 供容器探測。
+func healthcheck(cfg config.Config) int {
+	hc := &http.Client{Timeout: 3 * time.Second}
+	resp, err := hc.Get(cfg.HealthURL())
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return 1
+	}
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		fmt.Fprintln(os.Stderr, "狀態碼", resp.StatusCode)
+		return 1
+	}
+	return 0
+}
+
+func serve(cfg config.Config) {
+	srv := server.New(server.Config{
+		Path:         cfg.Data,
+		IdleTimeout:  cfg.Idle,
+		FailDelay:    time.Second,
+		SecureCookie: cfg.SecureCookie,
+		Static:       web.FS(),
+	})
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	go srv.RunJanitor(ctx, 30*time.Second)
 
-	hs := &http.Server{Addr: *addr, Handler: srv.Handler(), ReadHeaderTimeout: 5 * time.Second}
+	hs := &http.Server{Addr: cfg.Addr, Handler: srv.Handler(), ReadHeaderTimeout: 5 * time.Second}
 	go func() {
 		<-ctx.Done()
 		sctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -36,7 +73,7 @@ func main() {
 		hs.Shutdown(sctx)
 	}()
 
-	log.Printf("keychain 啟動於 http://%s（資料: %s）", *addr, *path)
+	log.Printf("keychain 啟動於 http://%s（資料: %s）", cfg.Addr, cfg.Data)
 	if err := hs.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		log.Fatal(err)
 	}

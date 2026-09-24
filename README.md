@@ -25,15 +25,26 @@ make build        # 產出 bin/keychain
 
 ### 參數
 
-| 參數 | 預設值 | 說明 |
-| --- | --- | --- |
-| `-addr` | `127.0.0.1:8787` | 監聽位址 |
-| `-data` | `~/.keychain/vault.json` | 保險庫檔案路徑 |
-| `-idle` | `10m` | 閒置多久後自動上鎖 |
+設定優先順序：命令列參數 > 環境變數 > 預設值。
+
+| 參數 | 環境變數 | 預設值 | 說明 |
+| --- | --- | --- | --- |
+| `-addr` | `KEYCHAIN_ADDR` | `127.0.0.1:8787` | 監聽位址 |
+| `-data` | `KEYCHAIN_DATA` | `~/.keychain/vault.json` | 保險庫檔案路徑 |
+| `-idle` | `KEYCHAIN_IDLE` | `10m` | 閒置多久後自動上鎖 |
+| `-secure-cookie` | `KEYCHAIN_SECURE_COOKIE` | `false` | cookie 加上 `Secure`，僅在 HTTPS 反向代理後啟用 |
 
 ```sh
 ./bin/keychain -data /path/to/vault.json -idle 5m
 ```
+
+### 健康檢查
+
+```sh
+./bin/keychain healthcheck   # 服務正常時 exit 0，否則 exit 1
+```
+
+依相同設定取得位址；監聽 `0.0.0.0` 時會改連 `127.0.0.1`。
 
 ## 安全設計
 
@@ -85,6 +96,7 @@ make build        # 產出 bin/keychain
 
 ```
 cmd/keychain/       程式進入點
+internal/config/    設定載入（參數、環境變數）
 internal/vault/     加密保險庫（金鑰衍生、加解密、CRUD）
 internal/server/    HTTP API、工作階段、安全標頭
 internal/web/       內嵌前端（HTML / CSS / JS）
