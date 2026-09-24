@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>Keychain</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="app.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <section id="lock" class="lock" hidden>
+    <form id="lock-form" class="lock-card" novalidate>
+      <div class="logo"><i data-icon="key"></i></div>
+      <h1>Keychain</h1>
+      <p id="lock-hint" class="muted"></p>
+      <input id="lock-pw" type="password" autocomplete="current-password" placeholder="主密碼" aria-label="主密碼">
+      <input id="lock-pw2" type="password" autocomplete="new-password" placeholder="再次輸入主密碼" aria-label="確認主密碼" hidden>
+      <p id="lock-err" class="error" role="alert"></p>
+      <button id="lock-submit" class="btn primary block" type="submit">解鎖</button>
+    </form>
+  </section>
+
+  <main id="app" class="app" hidden>
+    <header class="topbar">
+      <div class="brand"><i data-icon="key"></i><span>Keychain</span></div>
+      <div class="search">
+        <i data-icon="search"></i>
+        <input id="search" type="search" placeholder="搜尋標題、帳號、網址、標籤（按 / 聚焦）" aria-label="搜尋">
+      </div>
+      <button id="add-btn" class="btn primary" type="button"><i data-icon="plus"></i><span>新增</span></button>
+      <button id="pw-btn" class="btn ghost icon-only" type="button" title="更換主密碼" aria-label="更換主密碼"><i data-icon="settings"></i></button>
+      <button id="logout-btn" class="btn ghost" type="button" title="上鎖"><i data-icon="lock"></i><span>上鎖</span></button>
+    </header>
+    <div class="layout">
+      <aside class="sidebar">
+        <div id="tags" class="tags" hidden></div>
+        <p id="count" class="count muted"></p>
+        <ul id="list" class="list"></ul>
+        <p id="empty" class="empty muted" hidden></p>
+      </aside>
+      <section id="pane" class="pane" aria-live="polite"></section>
+    </div>
+  </main>
+
+  <template id="tpl-placeholder">
+    <div class="placeholder">
+      <i data-icon="key"></i>
+      <p>從左側選擇一筆帳號以檢視詳情</p>
+    </div>
+  </template>
+
+  <template id="tpl-view">
+    <article class="detail">
+      <button class="btn ghost back" type="button" data-act="back"><i data-icon="back"></i><span>返回</span></button>
+      <div class="detail-head">
+        <div class="avatar lg" data-f="avatar"></div>
+        <div class="detail-title">
+          <h2 data-f="title"></h2>
+          <p class="muted small" data-f="meta"></p>
+        </div>
+        <div class="detail-actions">
+          <button class="btn" type="button" data-act="edit"><i data-icon="edit"></i><span>編輯</span></button>
+          <button class="btn danger" type="button" data-act="delete"><i data-icon="trash"></i><span>刪除</span></button>
+        </div>
+      </div>
+      <dl class="fields">
+        <div class="field" data-row="username">
+          <dt>帳號</dt>
+          <dd><span class="value" data-f="username"></span>
+            <button class="icon-btn" type="button" data-copy="username" title="複製帳號" aria-label="複製帳號"><i data-icon="copy"></i></button></dd>
+        </div>
+        <div class="field" data-row="password">
+          <dt>密碼</dt>
+          <dd><span class="value mono" data-f="password"></span>
+            <button class="icon-btn" type="button" data-act="reveal" title="顯示密碼" aria-label="顯示密碼"><i data-icon="eye"></i></button>
+            <button class="icon-btn" type="button" data-copy="password" title="複製密碼" aria-label="複製密碼"><i data-icon="copy"></i></button></dd>
+        </div>
+        <div class="field" data-row="url">
+          <dt>網址</dt>
+          <dd><span class="value" data-f="url"></span>
+            <button class="icon-btn" type="button" data-copy="url" title="複製網址" aria-label="複製網址"><i data-icon="copy"></i></button></dd>
+        </div>
+        <div class="field" data-row="tags">
+          <dt>標籤</dt>
+          <dd><span class="value chips" data-f="tags"></span></dd>
+        </div>
+        <div class="field" data-row="notes">
+          <dt>備註</dt>
+          <dd><pre class="value notes" data-f="notes"></pre></dd>
+        </div>
+      </dl>
+    </article>
+  </template>
+
+  <template id="tpl-form">
+    <form class="editor" novalidate>
+      <button class="btn ghost back" type="button" data-act="back"><i data-icon="back"></i><span>返回</span></button>
+      <h2 data-f="heading"></h2>
+      <div class="form-row">
+        <label for="f-title">標題 <span class="req">*</span></label>
+        <input id="f-title" name="title" maxlength="200" placeholder="例如：GitHub" autocomplete="off">
+      </div>
+      <div class="form-row">
+        <label for="f-username">帳號</label>
+        <input id="f-username" name="username" placeholder="使用者名稱或 Email" autocomplete="off">
+      </div>
+      <div class="form-row">
+        <label for="f-password">密碼</label>
+        <div class="input-group">
+          <input id="f-password" name="password" type="password" class="mono" autocomplete="new-password">
+          <button class="icon-btn" type="button" data-act="toggle" title="顯示密碼" aria-label="顯示密碼"><i data-icon="eye"></i></button>
+          <button class="btn" type="button" data-act="gen"><i data-icon="dice"></i><span>產生</span></button>
+        </div>
+        <div class="strength" data-level="0"><div class="bar"><span></span></div><small data-f="strength"></small></div>
+        <div class="gen-opts">
+          <label>長度 <input type="range" name="len" min="8" max="64" value="20"> <output data-f="len">20</output></label>
+          <label class="check"><input type="checkbox" name="sym" checked> 包含符號</label>
+        </div>
+      </div>
+      <div class="form-row">
+        <label for="f-url">網址</label>
+        <input id="f-url" name="url" type="url" placeholder="https://" autocomplete="off">
+      </div>
+      <div class="form-row">
+        <label for="f-tags">標籤</label>
+        <input id="f-tags" name="tags" placeholder="以逗號分隔，例如：工作, 開發" autocomplete="off">
+      </div>
+      <div class="form-row">
+        <label for="f-notes">備註</label>
+        <textarea id="f-notes" name="notes" rows="4"></textarea>
+      </div>
+      <p class="error" data-f="err" role="alert"></p>
+      <div class="form-actions">
+        <button class="btn" type="button" data-act="cancel">取消</button>
+        <button class="btn primary" type="submit">儲存</button>
+      </div>
+    </form>
+  </template>
+
+  <dialog id="pw-dialog">
+    <form id="pw-form" novalidate>
+      <h2>更換主密碼</h2>
+      <div class="form-row">
+        <label for="pw-old">目前主密碼</label>
+        <input id="pw-old" type="password" autocomplete="current-password">
+      </div>
+      <div class="form-row">
+        <label for="pw-new">新主密碼（至少 8 個字元）</label>
+        <input id="pw-new" type="password" autocomplete="new-password">
+      </div>
+      <div class="form-row">
+        <label for="pw-new2">確認新主密碼</label>
+        <input id="pw-new2" type="password" autocomplete="new-password">
+      </div>
+      <p id="pw-err" class="error" role="alert"></p>
+      <div class="form-actions">
+        <button class="btn" type="button" id="pw-cancel">取消</button>
+        <button class="btn primary" type="submit">更換</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" hidden></div>
+</body>
+</html>

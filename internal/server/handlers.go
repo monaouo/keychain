@@ -38,7 +38,7 @@ func (e entryReq) toEntry() vault.Entry {
 func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]bool{
 		"initialized": vault.Exists(s.cfg.Path),
-		"unlocked":    s.session(r) != nil,
+		"unlocked":    s.session(r, false) != nil,
 	})
 }
 
@@ -92,7 +92,7 @@ func (s *Server) handleUnlock(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleLock(w http.ResponseWriter, r *http.Request) {
-	if s.session(r) != nil {
+	if s.session(r, false) != nil {
 		s.Lock()
 	}
 	http.SetCookie(w, &http.Cookie{Name: cookieName, Path: "/api", MaxAge: -1})

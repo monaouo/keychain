@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"keychain/internal/server"
+	"keychain/internal/web"
 )
 
 func main() {
@@ -22,7 +23,7 @@ func main() {
 	idle := flag.Duration("idle", 10*time.Minute, "閒置自動上鎖時間")
 	flag.Parse()
 
-	srv := server.New(server.Config{Path: *path, IdleTimeout: *idle, FailDelay: time.Second})
+	srv := server.New(server.Config{Path: *path, IdleTimeout: *idle, FailDelay: time.Second, Static: web.FS()})
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	go srv.RunJanitor(ctx, 30*time.Second)

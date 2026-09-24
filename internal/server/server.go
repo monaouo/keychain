@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"crypto/subtle"
 	"encoding/hex"
+	"io/fs"
 	"net/http"
 	"sync"
 	"time"
@@ -24,6 +25,7 @@ type Config struct {
 	Path        string        // 保險庫路徑
 	IdleTimeout time.Duration // 閒置上鎖
 	FailDelay   time.Duration // 失敗延遲
+	Static      fs.FS         // 前端檔案
 }
 
 // Server 管理保險庫與工作階段。
@@ -59,6 +61,9 @@ func (s *Server) Handler() http.Handler {
 	mux.Handle("PUT /api/entries/{id}", s.auth(s.handleUpdate))
 	mux.Handle("DELETE /api/entries/{id}", s.auth(s.handleDelete))
 	mux.Handle("POST /api/password", s.auth(s.handleChangePassword))
+	if s.cfg.Static != nil {
+		mux.Handle("GET /", http.FileServerFS(s.cfg.Static))
+	}
 	return securityHeaders(csrfGuard(mux))
 }
 
@@ -114,8 +119,8 @@ func (s *Server) startSession(w http.ResponseWriter, v *vault.Vault) {
 	})
 }
 
-// session 驗證 cookie 並取得保險庫。
-func (s *Server) session(r *http.Request) *vault.Vault {
+// session 驗證 cookie，touch 刷新閒置。
+func (s *Server) session(r *http.Request, touch bool) *vault.Vault {
 	c, err := r.Cookie(cookieName)
 	if err != nil {
 		return nil
@@ -126,7 +131,9 @@ func (s *Server) session(r *http.Request) *vault.Vault {
 	if s.vault == nil || subtle.ConstantTimeCompare([]byte(c.Value), []byte(s.token)) != 1 {
 		return nil
 	}
-	s.lastSeen = s.now()
+	if touch {
+		s.lastSeen = s.now()
+	}
 	return s.vault
 }
 
@@ -134,7 +141,7 @@ type authed func(w http.ResponseWriter, r *http.Request, v *vault.Vault)
 
 func (s *Server) auth(h authed) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		v := s.session(r)
+		v := s.session(r, true)
 		if v == nil {
 			writeError(w, http.StatusUnauthorized, "保險庫已上鎖")
 			return
